@@ -146,6 +146,27 @@ static const struct rte_pci_id bnxt_pci_id_map[] = {
 	ETH_RSS_NONFRAG_IPV6_TCP |	\
 	ETH_RSS_NONFRAG_IPV6_UDP)
 
+#define BNXT_DEV_TX_OFFLOAD_SUPPORT (DEV_TX_OFFLOAD_VLAN_INSERT | \
+				     DEV_TX_OFFLOAD_IPV4_CKSUM | \
+				     DEV_TX_OFFLOAD_TCP_CKSUM | \
+				     DEV_TX_OFFLOAD_UDP_CKSUM | \
+				     DEV_TX_OFFLOAD_TCP_TSO | \
+				     DEV_TX_OFFLOAD_OUTER_IPV4_CKSUM | \
+				     DEV_TX_OFFLOAD_VXLAN_TNL_TSO | \
+				     DEV_TX_OFFLOAD_GRE_TNL_TSO | \
+				     DEV_TX_OFFLOAD_IPIP_TNL_TSO | \
+				     DEV_TX_OFFLOAD_GENEVE_TNL_TSO | \
+				     DEV_TX_OFFLOAD_MULTI_SEGS)
+
+#define BNXT_DEV_RX_OFFLOAD_SUPPORT (DEV_RX_OFFLOAD_VLAN_FILTER | \
+				     DEV_RX_OFFLOAD_VLAN_STRIP | \
+				     DEV_RX_OFFLOAD_IPV4_CKSUM | \
+				     DEV_RX_OFFLOAD_UDP_CKSUM | \
+				     DEV_RX_OFFLOAD_TCP_CKSUM | \
+				     DEV_RX_OFFLOAD_OUTER_IPV4_CKSUM | \
+				     DEV_RX_OFFLOAD_JUMBO_FRAME | \
+				     DEV_RX_OFFLOAD_CRC_STRIP)
+
 static int bnxt_vlan_offload_set_op(struct rte_eth_dev *dev, int mask);
 static void bnxt_print_link_info(struct rte_eth_dev *eth_dev);
 
@@ -430,21 +451,14 @@ static void bnxt_dev_info_get_op(struct rte_eth_dev *eth_dev,
 	dev_info->min_rx_bufsize = 1;
 	dev_info->max_rx_pktlen = BNXT_MAX_MTU + ETHER_HDR_LEN + ETHER_CRC_LEN
 				  + VLAN_TAG_SIZE;
-	dev_info->rx_offload_capa = DEV_RX_OFFLOAD_VLAN_STRIP |
-					DEV_RX_OFFLOAD_IPV4_CKSUM |
-					DEV_RX_OFFLOAD_UDP_CKSUM |
-					DEV_RX_OFFLOAD_TCP_CKSUM |
-					DEV_RX_OFFLOAD_OUTER_IPV4_CKSUM;
-	dev_info->tx_offload_capa = DEV_TX_OFFLOAD_VLAN_INSERT |
-					DEV_TX_OFFLOAD_IPV4_CKSUM |
-					DEV_TX_OFFLOAD_TCP_CKSUM |
-					DEV_TX_OFFLOAD_UDP_CKSUM |
-					DEV_TX_OFFLOAD_TCP_TSO |
-					DEV_TX_OFFLOAD_OUTER_IPV4_CKSUM |
-					DEV_TX_OFFLOAD_VXLAN_TNL_TSO |
-					DEV_TX_OFFLOAD_GRE_TNL_TSO |
-					DEV_TX_OFFLOAD_IPIP_TNL_TSO |
-					DEV_TX_OFFLOAD_GENEVE_TNL_TSO;
+
+	dev_info->rx_queue_offload_capa = BNXT_DEV_RX_OFFLOAD_SUPPORT;
+	dev_info->rx_offload_capa = BNXT_DEV_RX_OFFLOAD_SUPPORT;
+	if (bp->flags & BNXT_FLAG_PTP_SUPPORTED)
+		dev_info->rx_offload_capa |= DEV_RX_OFFLOAD_TIMESTAMP;
+	dev_info->tx_queue_offload_capa = BNXT_DEV_TX_OFFLOAD_SUPPORT;
+	dev_info->tx_offload_capa = BNXT_DEV_TX_OFFLOAD_SUPPORT;
+	dev_info->flow_type_rss_offloads = BNXT_ETH_RSS_SUPPORT;
 
 	/* *INDENT-OFF* */
 	dev_info->default_rxconf = (struct rte_eth_rxconf) {
@@ -454,7 +468,8 @@ static void bnxt_dev_info_get_op(struct rte_eth_dev *eth_dev,
 			.wthresh = 0,
 		},
 		.rx_free_thresh = 32,
-		.rx_drop_en = 0,
+		/* If no descriptors available, pkts are dropped by default */
+		.rx_drop_en = 1,
 	};
 
 	dev_info->default_txconf = (struct rte_eth_txconf) {
@@ -465,8 +480,6 @@ static void bnxt_dev_info_get_op(struct rte_eth_dev *eth_dev,
 		},
 		.tx_free_thresh = 32,
 		.tx_rs_thresh = 32,
-		.txq_flags = ETH_TXQ_FLAGS_NOMULTSEGS |
-			     ETH_TXQ_FLAGS_NOOFFLOADS,
 	};
 	eth_dev->data->dev_conf.intr_conf.lsc = 1;
 
@@ -510,6 +523,16 @@ found:
 static int bnxt_dev_configure_op(struct rte_eth_dev *eth_dev)
 {
 	struct bnxt *bp = (struct bnxt *)eth_dev->data->dev_private;
+	uint64_t tx_offloads = eth_dev->data->dev_conf.txmode.offloads;
+	uint64_t rx_offloads = eth_dev->data->dev_conf.rxmode.offloads;
+
+	if (tx_offloads != BNXT_DEV_TX_OFFLOAD_SUPPORT)
+		PMD_DRV_LOG(ERR, "Tx offloads requested 0x%lx supported 0x%x\n",
+			    tx_offloads, BNXT_DEV_TX_OFFLOAD_SUPPORT);
+
+	if (rx_offloads != BNXT_DEV_RX_OFFLOAD_SUPPORT)
+		PMD_DRV_LOG(ERR, "Rx offloads requested 0x%lx supported 0x%x\n",
+			    rx_offloads, BNXT_DEV_RX_OFFLOAD_SUPPORT);
 
 	bp->rx_queues = (void *)eth_dev->data->rx_queues;
 	bp->tx_queues = (void *)eth_dev->data->tx_queues;
