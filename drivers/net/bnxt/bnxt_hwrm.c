@@ -919,9 +919,13 @@ int bnxt_hwrm_queue_qportcfg(struct bnxt *bp)
 	int rc = 0;
 	struct hwrm_queue_qportcfg_input req = {.req_type = 0 };
 	struct hwrm_queue_qportcfg_output *resp = bp->hwrm_cmd_resp_addr;
+	int i;
 
 	HWRM_PREP(req, QUEUE_QPORTCFG);
 
+	req.flags = HWRM_QUEUE_QPORTCFG_INPUT_FLAGS_PATH_TX;
+
+	req.drv_qmap_cap = HWRM_QUEUE_QPORTCFG_INPUT_DRV_QMAP_CAP_ENABLED;
 	rc = bnxt_hwrm_send_message(bp, &req, sizeof(req));
 
 	HWRM_CHECK_RESULT();
@@ -940,6 +944,16 @@ int bnxt_hwrm_queue_qportcfg(struct bnxt *bp)
 	GET_QUEUE_INFO(7);
 
 	HWRM_UNLOCK();
+
+	/* iterate and find the COSq profile to use for Tx */
+	for (i = 0; i < BNXT_COS_QUEUE_COUNT; i++) {
+		if (bp->cos_queue[i].profile ==
+			HWRM_QUEUE_SERVICE_PROFILE_LOSSY) {
+			bp->tx_cosq_id = bp->cos_queue[i].id;
+			break;
+		}
+	}
+	PMD_DRV_LOG(INFO, "Tx Cos Queue to use: %d\n", bp->tx_cosq_id);
 
 	return rc;
 }
@@ -964,7 +978,7 @@ int bnxt_hwrm_ring_alloc(struct bnxt *bp,
 
 	switch (ring_type) {
 	case HWRM_RING_ALLOC_INPUT_RING_TYPE_TX:
-		req.queue_id = bp->cos_queue[0].id;
+		req.queue_id = rte_cpu_to_le_16(bp->tx_cosq_id);
 		/* FALLTHROUGH */
 	case HWRM_RING_ALLOC_INPUT_RING_TYPE_RX:
 		req.ring_type = ring_type;

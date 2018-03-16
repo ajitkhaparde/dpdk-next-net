@@ -300,6 +300,7 @@ struct bnxt {
 
 	struct bnxt_link_info	link_info;
 	struct bnxt_cos_queue_info	cos_queue[BNXT_COS_QUEUE_COUNT];
+	uint8_t			tx_cosq_id;
 
 	uint16_t		fw_fid;
 	uint8_t			dflt_mac_addr[ETHER_ADDR_LEN];
