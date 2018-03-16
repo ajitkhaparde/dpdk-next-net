@@ -276,6 +276,41 @@ int bnxt_alloc_rings(struct bnxt *bp, uint16_t qidx,
 	return 0;
 }
 
+static void bnxt_init_dflt_coal(struct bnxt *bp)
+{
+	struct bnxt_coal *coal;
+
+	/* Tick values in micro seconds.
+	 * 1 coal_buf x bufs_per_record = 1 completion record.
+	 */
+	coal = &bp->rx_coal;
+	coal->num_cmpl_aggr_int = 36;
+	/* This is a 6-bit value and must not be 0, or we'll get non stop IRQ */
+	coal->num_cmpl_dma_aggr = 36;
+	/* This is a 6-bit value and must not be 0, or we'll get non stop IRQ */
+	coal->num_cmpl_dma_aggr_during_int = 12;
+	coal->int_lat_tmr_max = 150;
+	/* min timer set to 1/2 of interrupt timer */
+	coal->int_lat_tmr_min = 75;
+	/* buf timer set to 1/4 of interrupt timer */
+	coal->cmpl_aggr_dma_tmr = 37;
+	coal->cmpl_aggr_dma_tmr_during_int = 50;
+
+	//Fow now these values are same for Tx/Rx. Could be tuned later */
+	coal = &bp->tx_coal;
+	coal->num_cmpl_aggr_int = 36;
+	/* This is a 6-bit value and must not be 0, or we'll get non stop IRQ */
+	coal->num_cmpl_dma_aggr = 36;
+	/* This is a 6-bit value and must not be 0, or we'll get non stop IRQ */
+	coal->num_cmpl_dma_aggr_during_int = 12;
+	coal->int_lat_tmr_max = 150;
+	/* min timer set to 1/2 of interrupt timer */
+	coal->int_lat_tmr_min = 75;
+	/* buf timer set to 1/4 of interrupt timer */
+	coal->cmpl_aggr_dma_tmr = 37;
+	coal->cmpl_aggr_dma_tmr_during_int = 50;
+}
+
 /* ring_grp usage:
  * [0] = default completion ring
  * [1 -> +rx_cp_nr_rings] = rx_cp, rx rings
@@ -286,6 +321,8 @@ int bnxt_alloc_hwrm_rings(struct bnxt *bp)
 	struct rte_pci_device *pci_dev = bp->pdev;
 	unsigned int i;
 	int rc = 0;
+
+	bnxt_init_dflt_coal(bp);
 
 	for (i = 0; i < bp->rx_cp_nr_rings; i++) {
 		struct bnxt_rx_queue *rxq = bp->rx_queues[i];
@@ -309,6 +346,8 @@ int bnxt_alloc_hwrm_rings(struct bnxt *bp)
 		    idx * 0x80;
 		bp->grp_info[i].cp_fw_ring_id = cp_ring->fw_ring_id;
 		B_CP_DIS_DB(cpr, cpr->cp_raw_cons);
+
+		bnxt_hwrm_set_ring_coal(bp, &bp->rx_coal, cp_ring->fw_ring_id);
 
 		/* Rx ring */
 		rc = bnxt_hwrm_ring_alloc(bp, ring,
@@ -387,6 +426,7 @@ int bnxt_alloc_hwrm_rings(struct bnxt *bp)
 		txr->tx_doorbell = (char *)pci_dev->mem_resource[2].addr +
 		    idx * 0x80;
 		txq->index = idx;
+		bnxt_hwrm_set_ring_coal(bp, &bp->tx_coal, cp_ring->fw_ring_id);
 	}
 
 err_out:

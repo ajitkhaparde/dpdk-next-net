@@ -229,6 +229,16 @@ struct bnxt_ptp_cfg {
 	uint32_t			tx_mapped_regs[BNXT_PTP_TX_REGS];
 };
 
+struct bnxt_coal {
+	uint16_t			num_cmpl_aggr_int;
+	uint16_t			num_cmpl_dma_aggr;
+	uint16_t			num_cmpl_dma_aggr_during_int;
+	uint16_t			int_lat_tmr_max;
+	uint16_t			int_lat_tmr_min;
+	uint16_t			cmpl_aggr_dma_tmr;
+	uint16_t			cmpl_aggr_dma_tmr_during_int;
+};
+
 #define BNXT_HWRM_SHORT_REQ_LEN		sizeof(struct hwrm_short_input)
 struct bnxt {
 	void				*bar0;
@@ -327,6 +337,8 @@ struct bnxt {
 	struct bnxt_led_info	leds[BNXT_MAX_LED];
 	uint8_t			num_leds;
 	struct bnxt_ptp_cfg     *ptp_cfg;
+	struct bnxt_coal        rx_coal;
+	struct bnxt_coal        tx_coal;
 };
 
 int bnxt_link_update_op(struct rte_eth_dev *eth_dev, int wait_to_complete);
@@ -344,4 +356,5 @@ extern int bnxt_logtype_driver;
 
 #define PMD_DRV_LOG(level, fmt, args...) \
 	PMD_DRV_LOG_RAW(level, fmt, ## args)
+
 #endif

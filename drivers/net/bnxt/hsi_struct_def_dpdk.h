@@ -8906,6 +8906,214 @@ struct hwrm_ring_free_output {
 	 */
 } __attribute__((packed));
 
+/**************************************
+ * hwrm_ring_cmpl_ring_qaggint_params *
+ **************************************/
+
+
+/* hwrm_ring_cmpl_ring_qaggint_params_input (size:192b/24B) */
+struct hwrm_ring_cmpl_ring_qaggint_params_input {
+	/* The HWRM command request type. */
+	uint16_t	req_type;
+	/*
+	 * The completion ring to send the completion event on. This should
+	 * be the NQ ID returned from the `nq_alloc` HWRM command.
+	 */
+	uint16_t	cmpl_ring;
+	/*
+	 * The sequence ID is used by the driver for tracking multiple
+	 * commands. This ID is treated as opaque data by the firmware and
+	 * the value is returned in the `hwrm_resp_hdr` upon completion.
+	 */
+	uint16_t	seq_id;
+	/*
+	 * The target ID of the command:
+	 * * 0x0-0xFFF8 - The function ID
+	 * * 0xFFF8-0xFFFE - Reserved for internal processors
+	 * * 0xFFFF - HWRM
+	 */
+	uint16_t	target_id;
+	/*
+	 * A physical address pointer pointing to a host buffer that the
+	 * command's response data will be written. This can be either a host
+	 * physical address (HPA) or a guest physical address (GPA) and must
+	 * point to a physically contiguous block of memory.
+	 */
+	uint64_t	resp_addr;
+	/* Physical number of completion ring. */
+	uint16_t	ring_id;
+	uint8_t	unused_0[6];
+} __attribute__((packed));
+
+/* hwrm_ring_cmpl_ring_qaggint_params_output (size:256b/32B) */
+struct hwrm_ring_cmpl_ring_qaggint_params_output {
+	/* The specific error status for the command. */
+	uint16_t	error_code;
+	/* The HWRM command request type. */
+	uint16_t	req_type;
+	/* The sequence ID from the original command. */
+	uint16_t	seq_id;
+	/* The length of the response data in number of bytes. */
+	uint16_t	resp_len;
+	uint16_t	flags;
+	/*
+	 * When this bit is set to '1', interrupt max
+	 * timer is reset whenever a completion is received.
+	 */
+	#define HWRM_RING_CMPL_RING_QAGGINT_PARAMS_OUTPUT_FLAGS_TIMER_RESET     UINT32_C(0x1)
+	/*
+	 * When this bit is set to '1', ring idle mode
+	 * aggregation will be enabled.
+	 */
+	#define HWRM_RING_CMPL_RING_QAGGINT_PARAMS_OUTPUT_FLAGS_RING_IDLE       UINT32_C(0x2)
+	/*
+	 * Number of completions to aggregate before DMA
+	 * during the normal mode.
+	 */
+	uint16_t	num_cmpl_dma_aggr;
+	/*
+	 * Number of completions to aggregate before DMA
+	 * during the interrupt mode.
+	 */
+	uint16_t	num_cmpl_dma_aggr_during_int;
+	/*
+	 * Timer in unit of 80-nsec used to aggregate completions before
+	 * DMA during the normal mode (not in interrupt mode).
+	 */
+	uint16_t	cmpl_aggr_dma_tmr;
+	/*
+	 * Timer in unit of 80-nsec used to aggregate completions before
+	 * DMA during the interrupt mode.
+	 */
+	uint16_t	cmpl_aggr_dma_tmr_during_int;
+	/* Minimum time (in unit of 80-nsec) between two interrupts. */
+	uint16_t	int_lat_tmr_min;
+	/*
+	 * Maximum wait time (in unit of 80-nsec) spent aggregating
+	 * completions before signaling the interrupt after the
+	 * interrupt is enabled.
+	 */
+	uint16_t	int_lat_tmr_max;
+	/*
+	 * Minimum number of completions aggregated before signaling
+	 * an interrupt.
+	 */
+	uint16_t	num_cmpl_aggr_int;
+	uint8_t	unused_0[7];
+	/*
+	 * This field is used in Output records to indicate that the output
+	 * is completely written to RAM.  This field should be read as '1'
+	 * to indicate that the output has been completely written.
+	 * When writing a command completion or response to an internal processor,
+	 * the order of writes has to be such that this field is written last.
+	 */
+	uint8_t	valid;
+} __attribute__((packed));
+
+/*****************************************
+ * hwrm_ring_cmpl_ring_cfg_aggint_params *
+ *****************************************/
+
+
+/* hwrm_ring_cmpl_ring_cfg_aggint_params_input (size:320b/40B) */
+struct hwrm_ring_cmpl_ring_cfg_aggint_params_input {
+	/* The HWRM command request type. */
+	uint16_t	req_type;
+	/*
+	 * The completion ring to send the completion event on. This should
+	 * be the NQ ID returned from the `nq_alloc` HWRM command.
+	 */
+	uint16_t	cmpl_ring;
+	/*
+	 * The sequence ID is used by the driver for tracking multiple
+	 * commands. This ID is treated as opaque data by the firmware and
+	 * the value is returned in the `hwrm_resp_hdr` upon completion.
+	 */
+	uint16_t	seq_id;
+	/*
+	 * The target ID of the command:
+	 * * 0x0-0xFFF8 - The function ID
+	 * * 0xFFF8-0xFFFE - Reserved for internal processors
+	 * * 0xFFFF - HWRM
+	 */
+	uint16_t	target_id;
+	/*
+	 * A physical address pointer pointing to a host buffer that the
+	 * command's response data will be written. This can be either a host
+	 * physical address (HPA) or a guest physical address (GPA) and must
+	 * point to a physically contiguous block of memory.
+	 */
+	uint64_t	resp_addr;
+	/* Physical number of completion ring. */
+	uint16_t	ring_id;
+	uint16_t	flags;
+	/*
+	 * When this bit is set to '1', interrupt latency max
+	 * timer is reset whenever a completion is received.
+	 */
+	#define HWRM_RING_CMPL_RING_CFG_AGGINT_PARAMS_INPUT_FLAGS_TIMER_RESET     UINT32_C(0x1)
+	/*
+	 * When this bit is set to '1', ring idle mode
+	 * aggregation will be enabled.
+	 */
+	#define HWRM_RING_CMPL_RING_CFG_AGGINT_PARAMS_INPUT_FLAGS_RING_IDLE       UINT32_C(0x2)
+	/*
+	 * Number of completions to aggregate before DMA
+	 * during the normal mode.
+	 */
+	uint16_t	num_cmpl_dma_aggr;
+	/*
+	 * Number of completions to aggregate before DMA
+	 * during the interrupt mode.
+	 */
+	uint16_t	num_cmpl_dma_aggr_during_int;
+	/*
+	 * Timer in unit of 80-nsec used to aggregate completions before
+	 * DMA during the normal mode (not in interrupt mode).
+	 */
+	uint16_t	cmpl_aggr_dma_tmr;
+	/*
+	 * Timer in unit of 80-nsec used to aggregate completions before
+	 * DMA during the interrupt mode.
+	 */
+	uint16_t	cmpl_aggr_dma_tmr_during_int;
+	/* Minimum time (in unit of 80-nsec) between two interrupts. */
+	uint16_t	int_lat_tmr_min;
+	/*
+	 * Maximum wait time (in unit of 80-nsec) spent aggregating
+	 * cmpls before signaling the interrupt after the
+	 * interrupt is enabled.
+	 */
+	uint16_t	int_lat_tmr_max;
+	/*
+	 * Minimum number of completions aggregated before signaling
+	 * an interrupt.
+	 */
+	uint16_t	num_cmpl_aggr_int;
+	uint8_t	unused_0[6];
+} __attribute__((packed));
+
+/* hwrm_ring_cmpl_ring_cfg_aggint_params_output (size:128b/16B) */
+struct hwrm_ring_cmpl_ring_cfg_aggint_params_output {
+	/* The specific error status for the command. */
+	uint16_t	error_code;
+	/* The HWRM command request type. */
+	uint16_t	req_type;
+	/* The sequence ID from the original command. */
+	uint16_t	seq_id;
+	/* The length of the response data in number of bytes. */
+	uint16_t	resp_len;
+	uint8_t	unused_0[7];
+	/*
+	 * This field is used in Output records to indicate that the output
+	 * is completely written to RAM.  This field should be read as '1'
+	 * to indicate that the output has been completely written.
+	 * When writing a command completion or response to an internal processor,
+	 * the order of writes has to be such that this field is written last.
+	 */
+	uint8_t	valid;
+} __attribute__((packed));
+
 /* hwrm_ring_grp_alloc */
 /*
  * Description: This API allocates and does basic preparation for a ring group.
