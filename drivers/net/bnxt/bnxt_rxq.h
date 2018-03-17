@@ -61,7 +61,7 @@ struct bnxt_rx_queue {
 	struct bnxt_rx_ring_info	*rx_ring;
 	struct bnxt_cp_ring_info	*cp_ring;
 	rte_atomic64_t		rx_mbuf_alloc_fail;
-};
+} __rte_cache_aligned;
 
 void bnxt_free_rxq_stats(struct bnxt_rx_queue *rxq);
 int bnxt_mq_rx_configure(struct bnxt *bp);

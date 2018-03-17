@@ -54,7 +54,7 @@ static inline struct rte_mbuf *__bnxt_alloc_rx_data(struct rte_mempool *mb)
 {
 	struct rte_mbuf *data;
 
-	data = rte_mbuf_raw_alloc(mb);
+	data = rte_pktmbuf_alloc(mb);
 
 	return data;
 }
@@ -73,6 +73,11 @@ static inline int bnxt_alloc_rx_data(struct bnxt_rx_queue *rxq,
 		return -ENOMEM;
 	}
 
+	mbuf->data_off = RTE_PKTMBUF_HEADROOM;
+	mbuf->nb_segs = 1;
+	mbuf->next = NULL;
+	mbuf->ol_flags = 0;
+	rte_mbuf_refcnt_set(mbuf, 1);
 	rx_buf->mbuf = mbuf;
 
 	rxbd->addr = rte_cpu_to_le_64(rte_mbuf_data_iova_default(mbuf));
@@ -155,6 +160,10 @@ struct rte_mbuf *bnxt_consume_rx_buf(struct bnxt_rx_ring_info *rxr,
 	struct rte_mbuf *mbuf;
 
 	cons_rx_buf = &rxr->rx_buf_ring[cons];
+	rte_prefetch_non_temporal(&rxr->rx_buf_ring[cons + 1]);
+	rte_prefetch_non_temporal(&rxr->rx_buf_ring[cons + 2]);
+	rte_prefetch_non_temporal(&rxr->rx_buf_ring[cons + 3]);
+	rte_prefetch_non_temporal(&rxr->rx_buf_ring[cons + 4]);
 	RTE_ASSERT(cons_rx_buf->mbuf != NULL);
 	mbuf = cons_rx_buf->mbuf;
 	cons_rx_buf->mbuf = NULL;
@@ -426,6 +435,9 @@ static int bnxt_rx_pkt(struct rte_mbuf **rx_pkt,
 				cpr->valid);
 
 	cmp_type = CMP_TYPE(rxcmp);
+	if (cmp_type == 0x11)
+		goto l2_cmpl;
+
 	if (cmp_type == RX_TPA_START_CMPL_TYPE_RX_TPA_START) {
 		bnxt_tpa_start(rxq, (struct rx_tpa_start_cmpl *)rxcmp,
 			       (struct rx_tpa_start_cmpl_hi *)rxcmp1);
@@ -444,6 +456,7 @@ static int bnxt_rx_pkt(struct rte_mbuf **rx_pkt,
 		goto next_rx;
 	}
 
+l2_cmpl:
 	agg_buf = (rxcmp->agg_bufs_v1 & RX_PKT_CMPL_AGG_BUFS_MASK)
 			>> RX_PKT_CMPL_AGG_BUFS_SFT;
 	if (agg_buf && !bnxt_agg_bufs_valid(cpr, agg_buf, tmp_raw_cons))
@@ -458,13 +471,9 @@ static int bnxt_rx_pkt(struct rte_mbuf **rx_pkt,
 
 	rte_prefetch0(mbuf);
 
-	mbuf->data_off = RTE_PKTMBUF_HEADROOM;
-	mbuf->nb_segs = 1;
-	mbuf->next = NULL;
 	mbuf->pkt_len = rxcmp->len;
 	mbuf->data_len = mbuf->pkt_len;
 	mbuf->port = rxq->port_id;
-	mbuf->ol_flags = 0;
 	if (rxcmp->flags_type & RX_PKT_CMPL_FLAGS_RSS_VALID) {
 		mbuf->hash.rss = rxcmp->rss_hash;
 		mbuf->ol_flags |= PKT_RX_RSS_HASH;
@@ -559,6 +568,8 @@ uint16_t bnxt_recv_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 	struct rx_pkt_cmpl *rxcmp;
 	uint16_t prod = rxr->rx_prod;
 	uint16_t ag_prod = rxr->ag_prod;
+	struct bnxt_ring *cp_ring_struct = cpr->cp_ring_struct;
+	uint32_t ring_mask = cp_ring_struct->ring_mask;
 	int rc = 0;
 
 	/* If Rx Q was stopped return */
@@ -569,6 +580,10 @@ uint16_t bnxt_recv_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 	while (1) {
 		cons = RING_CMP(cpr->cp_ring_struct, raw_cons);
 		rte_prefetch0(&cpr->cp_desc_ring[cons]);
+		rte_prefetch_non_temporal(&cpr->cp_desc_ring[(cons + 1) & ring_mask]);
+		rte_prefetch_non_temporal(&cpr->cp_desc_ring[(cons + 2) & ring_mask]);
+		rte_prefetch_non_temporal(&cpr->cp_desc_ring[(cons + 3) & ring_mask]);
+		rte_prefetch_non_temporal(&cpr->cp_desc_ring[(cons + 4) & ring_mask]);
 		rxcmp = (struct rx_pkt_cmpl *)&cpr->cp_desc_ring[cons];
 
 		if (!CMP_VALID(rxcmp, raw_cons, cpr->cp_ring_struct))
@@ -590,19 +605,20 @@ uint16_t bnxt_recv_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 			break;
 	}
 
+	/*
+	 * For PMD, there is no need to keep on pushing to REARM
+	 * the doorbell if there are no new completions
+	 */
+	if (!nb_rx_pkts)
+		goto exit;
+
 	cpr->cp_raw_cons = raw_cons;
-	if (prod == rxr->rx_prod && ag_prod == rxr->ag_prod) {
-		/*
-		 * For PMD, there is no need to keep on pushing to REARM
-		 * the doorbell if there are no new completions
-		 */
-		return nb_rx_pkts;
-	}
 
 	B_CP_DIS_DB(cpr, cpr->cp_raw_cons);
 	B_RX_DB(rxr->rx_doorbell, rxr->rx_prod);
 	/* Ring the AGG ring DB */
-	B_RX_DB(rxr->ag_doorbell, rxr->ag_prod);
+	if (unlikely(ag_prod != rxr->ag_prod))
+		B_RX_DB(rxr->ag_doorbell, rxr->ag_prod);
 
 	/* Attempt to alloc Rx buf in case of a previous allocation failure. */
 	if (rc == -ENOMEM) {
@@ -627,6 +643,7 @@ uint16_t bnxt_recv_pkts(void *rx_queue, struct rte_mbuf **rx_pkts,
 		}
 	}
 
+exit:
 	return nb_rx_pkts;
 }
 
@@ -751,9 +768,7 @@ int bnxt_init_one_rx_ring(struct bnxt_rx_queue *rxq)
 	unsigned int i;
 	uint16_t size;
 
-	size = rte_pktmbuf_data_room_size(rxq->mb_pool) - RTE_PKTMBUF_HEADROOM;
-	if (rxq->rx_buf_use_size <= size)
-		size = rxq->rx_buf_use_size;
+	size = rte_pktmbuf_data_room_size(rxq->mb_pool);
 
 	type = RX_PROD_PKT_BD_TYPE_RX_PROD_PKT | RX_PROD_PKT_BD_FLAGS_EOP_PAD;
 
