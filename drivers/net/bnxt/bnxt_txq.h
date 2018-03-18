@@ -53,6 +53,7 @@ struct bnxt_tx_queue {
 	uint32_t		txq_flags; /* Holds flags for this TXq */
 	uint32_t		ctx_curr; /* Hardware context states */
 	uint8_t			tx_deferred_start; /* not in global dev start */
+	uint8_t			cmpl_next; /* Next BD to trigger a compl */
 
 	struct bnxt		*bp;
 	int			index;
@@ -61,7 +62,7 @@ struct bnxt_tx_queue {
 
 	unsigned int		cp_nr_rings;
 	struct bnxt_cp_ring_info	*cp_ring;
-};
+} __rte_cache_aligned;
 
 void bnxt_free_txq_stats(struct bnxt_tx_queue *txq);
 void bnxt_free_tx_mbufs(struct bnxt *bp);
