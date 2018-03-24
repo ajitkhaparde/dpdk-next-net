@@ -662,6 +662,7 @@ static void bnxt_dev_stop_op(struct rte_eth_dev *eth_dev)
 		/* TBD: STOP HW queues DMA */
 		eth_dev->data->dev_link.link_status = 0;
 	}
+	bnxt_free_rx_mbufs(bp);
 	bnxt_set_hwrm_link_config(bp, false);
 	bnxt_hwrm_port_clr_stats(bp);
 	bp->flags &= ~BNXT_FLAG_INIT_DONE;
@@ -3074,6 +3075,13 @@ static int bnxt_init_board(struct rte_eth_dev *eth_dev)
 		goto init_err_disable;
 	}
 
+	if (!pci_dev->mem_resource[2].addr) {
+		PMD_DRV_LOG(ERR,
+			"Cannot find PCI device BAR 2 address, aborting\n");
+		rc = -ENODEV;
+		goto init_err_disable;
+	}
+
 	bp->eth_dev = eth_dev;
 	bp->pdev = pci_dev;
 
@@ -3083,11 +3091,20 @@ static int bnxt_init_board(struct rte_eth_dev *eth_dev)
 		rc = -ENOMEM;
 		goto init_err_release;
 	}
+
+	bp->base_doorbell = (void *)pci_dev->mem_resource[2].addr;
+	if (!bp->base_doorbell) {
+		PMD_DRV_LOG(ERR, "Cannot map device doorbell, aborting\n");
+		rc = -ENOMEM;
+		goto init_err_release;
+	}
 	return 0;
 
 init_err_release:
 	if (bp->bar0)
 		bp->bar0 = NULL;
+	if (bp->base_doorbell)
+		bp->base_doorbell = NULL;
 
 init_err_disable:
 
@@ -3122,6 +3139,7 @@ bnxt_dev_init(struct rte_eth_dev *eth_dev)
 	bp = eth_dev->data->dev_private;
 
 	bp->dev_stopped = 1;
+	//bp->base_doorbell = (char *)pci_dev->mem_resource[2].addr;
 
 	if (rte_eal_process_type() != RTE_PROC_PRIMARY)
 		goto skip_init;
@@ -3394,6 +3412,7 @@ bnxt_dev_uninit(struct rte_eth_dev *eth_dev) {
 	if (rte_eal_process_type() != RTE_PROC_PRIMARY)
 		return -EPERM;
 
+	bnxt_free_all_hwrm_rings(bp);
 	bnxt_disable_int(bp);
 	bnxt_free_int(bp);
 	bnxt_free_mem(bp);

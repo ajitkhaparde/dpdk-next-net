@@ -683,6 +683,9 @@ int bnxt_hwrm_ver_get(struct bnxt *bp)
 		resp->hwrm_fw_maj, resp->hwrm_fw_min, resp->hwrm_fw_bld);
 	bp->fw_ver = (resp->hwrm_fw_maj << 24) | (resp->hwrm_fw_min << 16) |
 			(resp->hwrm_fw_bld << 8) | resp->hwrm_fw_rsvd;
+	bp->fw_hwrm_ver = (resp->hwrm_intf_maj << 24) |
+			(resp->hwrm_intf_min << 16) |
+			(resp->hwrm_intf_upd << 8);
 	PMD_DRV_LOG(INFO, "Driver HWRM version: %d.%d.%d\n",
 		HWRM_VERSION_MAJOR, HWRM_VERSION_MINOR, HWRM_VERSION_UPDATE);
 
@@ -925,7 +928,9 @@ int bnxt_hwrm_queue_qportcfg(struct bnxt *bp)
 
 	req.flags = HWRM_QUEUE_QPORTCFG_INPUT_FLAGS_PATH_TX;
 
-	req.drv_qmap_cap = HWRM_QUEUE_QPORTCFG_INPUT_DRV_QMAP_CAP_ENABLED;
+	if (bp->fw_hwrm_ver >= 0x10901)
+		req.drv_qmap_cap =
+			HWRM_QUEUE_QPORTCFG_INPUT_DRV_QMAP_CAP_ENABLED;
 	rc = bnxt_hwrm_send_message(bp, &req, sizeof(req));
 
 	HWRM_CHECK_RESULT();
@@ -953,6 +958,10 @@ int bnxt_hwrm_queue_qportcfg(struct bnxt *bp)
 			break;
 		}
 	}
+
+	if (bp->fw_hwrm_ver < 0x10901)
+		bp->tx_cosq_id = bp->cos_queue[0].id;
+
 	PMD_DRV_LOG(INFO, "Tx Cos Queue to use: %d\n", bp->tx_cosq_id);
 
 	return rc;
@@ -1990,7 +1999,7 @@ void bnxt_free_all_hwrm_resources(struct bnxt *bp)
 		bnxt_hwrm_vnic_free(bp, vnic);
 	}
 	/* Ring resources */
-	bnxt_free_all_hwrm_rings(bp);
+	//bnxt_free_all_hwrm_rings(bp);
 	bnxt_free_all_hwrm_ring_grps(bp);
 	bnxt_free_all_hwrm_stat_ctxs(bp);
 	bnxt_free_tunnel_ports(bp);

@@ -345,6 +345,12 @@ int bnxt_alloc_hwrm_rings(struct bnxt *bp)
 		cpr->cp_doorbell = (char *)pci_dev->mem_resource[2].addr +
 		    idx * 0x80;
 		bp->grp_info[i].cp_fw_ring_id = cp_ring->fw_ring_id;
+		if (!pci_dev->mem_resource[2].addr) {
+			RTE_LOG(ERR, PMD, "PCI mem BAR is NULL\n");
+			cpr->cp_doorbell = (char *)bp->base_doorbell + idx * 0x80;
+		}
+
+
 		B_CP_DIS_DB(cpr, cpr->cp_raw_cons);
 
 		bnxt_hwrm_set_ring_coal(bp, &bp->rx_coal, cp_ring->fw_ring_id);
@@ -360,6 +366,10 @@ int bnxt_alloc_hwrm_rings(struct bnxt *bp)
 		rxr->rx_doorbell = (char *)pci_dev->mem_resource[2].addr +
 		    idx * 0x80;
 		bp->grp_info[i].rx_fw_ring_id = ring->fw_ring_id;
+		if (!pci_dev->mem_resource[2].addr) {
+			RTE_LOG(ERR, PMD, "PCI mem BAR is NULL\n");
+			rxr->rx_doorbell = (char *)bp->base_doorbell + idx * 0x80;
+		}
 		B_RX_DB(rxr->rx_doorbell, rxr->rx_prod);
 
 		ring = rxr->ag_ring_struct;
@@ -380,11 +390,16 @@ int bnxt_alloc_hwrm_rings(struct bnxt *bp)
 		rxr->ag_doorbell =
 		    (char *)pci_dev->mem_resource[2].addr +
 		    map_idx * 0x80;
+		if (!pci_dev->mem_resource[2].addr) {
+			RTE_LOG(ERR, PMD, "PCI mem BAR is NULL\n");
+			rxr->ag_doorbell = (char *)bp->base_doorbell + map_idx * 0x80;
+		}
 		bp->grp_info[i].ag_fw_ring_id = ring->fw_ring_id;
 		B_RX_DB(rxr->ag_doorbell, rxr->ag_prod);
 
 		rxq->rx_buf_use_size = BNXT_MAX_MTU + ETHER_HDR_LEN +
 					ETHER_CRC_LEN + (2 * VLAN_TAG_SIZE);
+		RTE_LOG(ERR, PMD, "bnxt_init_one_rx_ring\n");
 		if (bnxt_init_one_rx_ring(rxq)) {
 			PMD_DRV_LOG(ERR, "bnxt_init_one_rx_ring failed!\n");
 			bnxt_rx_queue_release_op(rxq);
@@ -413,6 +428,10 @@ int bnxt_alloc_hwrm_rings(struct bnxt *bp)
 
 		cpr->cp_doorbell = (char *)pci_dev->mem_resource[2].addr +
 		    idx * 0x80;
+		if (!pci_dev->mem_resource[2].addr) {
+			RTE_LOG(ERR, PMD, "PCI mem BAR is NULL\n");
+			cpr->cp_doorbell = (char *)bp->base_doorbell + idx * 0x80;
+		}
 		B_CP_DIS_DB(cpr, cpr->cp_raw_cons);
 
 		/* Tx ring */
@@ -425,6 +444,10 @@ int bnxt_alloc_hwrm_rings(struct bnxt *bp)
 
 		txr->tx_doorbell = (char *)pci_dev->mem_resource[2].addr +
 		    idx * 0x80;
+		if (!pci_dev->mem_resource[2].addr) {
+			RTE_LOG(ERR, PMD, "PCI mem BAR is NULL\n");
+			txr->tx_doorbell = (char *)bp->base_doorbell + idx * 0x80;
+		}
 		txq->index = idx;
 		bnxt_hwrm_set_ring_coal(bp, &bp->tx_coal, cp_ring->fw_ring_id);
 	}

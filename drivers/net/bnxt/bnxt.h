@@ -246,6 +246,7 @@ struct bnxt {
 	struct rte_eth_dev		*eth_dev;
 	struct rte_eth_rss_conf		rss_conf;
 	struct rte_pci_device		*pdev;
+	void				*base_doorbell;
 
 	uint32_t		flags;
 #define BNXT_FLAG_REGISTERED	(1 << 0)
@@ -332,6 +333,7 @@ struct bnxt {
 	uint16_t		vxlan_fw_dst_port_id;
 	uint16_t		geneve_fw_dst_port_id;
 	uint32_t		fw_ver;
+	uint32_t		fw_hwrm_ver;
 
 	struct bnxt_led_info	leds[BNXT_MAX_LED];
 	uint8_t			num_leds;
