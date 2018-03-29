@@ -3139,7 +3139,6 @@ bnxt_dev_init(struct rte_eth_dev *eth_dev)
 	bp = eth_dev->data->dev_private;
 
 	bp->dev_stopped = 1;
-	//bp->base_doorbell = (char *)pci_dev->mem_resource[2].addr;
 
 	if (rte_eal_process_type() != RTE_PROC_PRIMARY)
 		goto skip_init;

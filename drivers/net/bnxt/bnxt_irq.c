@@ -92,8 +92,12 @@ static void bnxt_int_handler(void *param)
 
 	};
 no_more:
-	cpr->cp_raw_cons = raw_cons;
-	B_CP_DB_REARM(cpr, cpr->cp_raw_cons);
+
+	if (cpr && cpr->cp_ring_struct) {
+		cpr->cp_raw_cons = raw_cons;
+		if (cpr->cp_doorbell)
+			B_CP_DB_REARM(cpr, cpr->cp_raw_cons);
+	}
 }
 
 void bnxt_free_int(struct bnxt *bp)
