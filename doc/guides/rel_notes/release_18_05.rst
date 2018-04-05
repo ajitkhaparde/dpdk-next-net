@@ -69,6 +69,12 @@ New Features
   See the :doc:`../nics/axgbe` nic driver guide for more details on this
   new driver.
 
+* **Added crypto workload support to vhost library.**
+
+  New APIs are introduced in vhost library to enable virtio crypto support
+  including session creation/deletion handling and translating virito-crypto
+  request into DPDK crypto operations. A sample application is also introduced.
+
 
 API Changes
 -----------
