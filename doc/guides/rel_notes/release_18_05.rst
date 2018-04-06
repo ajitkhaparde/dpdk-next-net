@@ -75,6 +75,13 @@ New Features
   including session creation/deletion handling and translating virito-crypto
   request into DPDK crypto operations. A sample application is also introduced.
 
+* **Added support for virtio-user server mode.**
+  In a container environment if the vhost-user backend restarts, there's no way
+  for it to reconnect to virtio-user. To address this, support for server mode
+  is added. In this mode the socket file is created by virtio-user, which the
+  backend connects to. This means that if the backend restarts, it can reconnect
+  to virtio-user and continue communications.
+
 
 API Changes
 -----------
