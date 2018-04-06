@@ -58,6 +58,11 @@ New Features
   * Added support for NVGRE, VXLAN and GENEVE filters in flow API.
   * Added support for DROP action in flow API.
 
+* **Added Ethernet poll mode driver for AMD XGBE devices.**
+
+  Added the new ``axgbe`` ethernet poll mode driver for AMD XGBE devices.
+  See the :doc:`../nics/axgbe` nic driver guide for more details on this
+  new driver.
 
 API Changes
 -----------
