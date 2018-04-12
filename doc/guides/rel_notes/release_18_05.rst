@@ -69,6 +69,10 @@ New Features
   See the :doc:`../nics/axgbe` nic driver guide for more details on this
   new driver.
 
+* **Updated szedata2 PMD.**
+
+  Added support for new NFB-200G2QL card.
+
 * **Added crypto workload support to vhost library.**
 
   New APIs are introduced in vhost library to enable virtio crypto support
