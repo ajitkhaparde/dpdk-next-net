@@ -64,10 +64,10 @@ int bnxt_init_ring_grps(struct bnxt *bp)
  * rx bd ring - Only non-zero length if rx_ring_info is not NULL
  */
 int bnxt_alloc_rings(struct bnxt *bp, uint16_t qidx,
-			    struct bnxt_tx_queue *txq,
-			    struct bnxt_rx_queue *rxq,
-			    struct bnxt_cp_ring_info *cp_ring_info,
-			    const char *suffix)
+		     struct bnxt_tx_queue *txq,
+		     struct bnxt_rx_queue *rxq,
+		     struct bnxt_cp_ring_info *cp_ring_info,
+		     const char *suffix)
 {
 	struct bnxt_ring *cp_ring = cp_ring_info->cp_ring_struct;
 	struct bnxt_rx_ring_info *rx_ring_info = rxq ? rxq->rx_ring : NULL;
@@ -90,20 +90,24 @@ int bnxt_alloc_rings(struct bnxt *bp, uint16_t qidx,
 
 	int tx_vmem_start = cp_vmem_start + cp_vmem_len;
 	int tx_vmem_len =
-	    tx_ring_info ? RTE_CACHE_LINE_ROUNDUP(tx_ring_info->
-						tx_ring_struct->vmem_size) : 0;
+	    tx_ring_info ?
+		RTE_CACHE_LINE_ROUNDUP(tx_ring_info->tx_ring_struct->vmem_size)
+		: 0;
 
 	int rx_vmem_start = tx_vmem_start + tx_vmem_len;
 	int rx_vmem_len = rx_ring_info ?
-		RTE_CACHE_LINE_ROUNDUP(rx_ring_info->
-						rx_ring_struct->vmem_size) : 0;
+		RTE_CACHE_LINE_ROUNDUP(rx_ring_info->rx_ring_struct->vmem_size)
+		: 0;
+
 	int ag_vmem_start = 0;
 	int ag_vmem_len = 0;
 	int cp_ring_start =  0;
 
 	ag_vmem_start = rx_vmem_start + rx_vmem_len;
-	ag_vmem_len = rx_ring_info ? RTE_CACHE_LINE_ROUNDUP(
-				rx_ring_info->ag_ring_struct->vmem_size) : 0;
+	ag_vmem_len = rx_ring_info ?
+		RTE_CACHE_LINE_ROUNDUP(rx_ring_info->ag_ring_struct->vmem_size)
+		: 0;
+
 	cp_ring_start = ag_vmem_start + ag_vmem_len;
 
 	int cp_ring_len = RTE_CACHE_LINE_ROUNDUP(cp_ring->ring_size *
@@ -124,9 +128,11 @@ int bnxt_alloc_rings(struct bnxt *bp, uint16_t qidx,
 
 	int ag_bitmap_start = ag_ring_start + ag_ring_len;
 	int ag_bitmap_len =  rx_ring_info ?
-		RTE_CACHE_LINE_ROUNDUP(rte_bitmap_get_memory_footprint(
-			rx_ring_info->rx_ring_struct->ring_size *
-			AGG_RING_SIZE_FACTOR)) : 0;
+		RTE_CACHE_LINE_ROUNDUP
+		  (rte_bitmap_get_memory_footprint
+		    (rx_ring_info->rx_ring_struct->ring_size *
+		     AGG_RING_SIZE_FACTOR))
+		: 0;
 
 	int tpa_info_start = ag_bitmap_start + ag_bitmap_len;
 	int tpa_info_len = rx_ring_info ?
@@ -134,6 +140,7 @@ int bnxt_alloc_rings(struct bnxt *bp, uint16_t qidx,
 				       sizeof(struct bnxt_tpa_info)) : 0;
 
 	int total_alloc_len = tpa_info_start;
+
 	if (rx_offloads & DEV_RX_OFFLOAD_TCP_LRO)
 		total_alloc_len += tpa_info_len;
 
@@ -144,12 +151,13 @@ int bnxt_alloc_rings(struct bnxt *bp, uint16_t qidx,
 	mz_name[RTE_MEMZONE_NAMESIZE - 1] = 0;
 	mz = rte_memzone_lookup(mz_name);
 	if (!mz) {
-		mz = rte_memzone_reserve_aligned(mz_name, total_alloc_len,
-				SOCKET_ID_ANY,
-				RTE_MEMZONE_2MB |
-				RTE_MEMZONE_SIZE_HINT_ONLY |
-				RTE_MEMZONE_IOVA_CONTIG,
-				getpagesize());
+		mz = rte_memzone_reserve_aligned(mz_name,
+						 total_alloc_len,
+						 SOCKET_ID_ANY,
+						 RTE_MEMZONE_2MB |
+						 RTE_MEMZONE_SIZE_HINT_ONLY |
+						 RTE_MEMZONE_IOVA_CONTIG,
+						 getpagesize());
 		if (mz == NULL)
 			return -ENOMEM;
 	}
@@ -165,7 +173,7 @@ int bnxt_alloc_rings(struct bnxt *bp, uint16_t qidx,
 		mz_phys_addr = rte_mem_virt2iova(mz->addr);
 		if (mz_phys_addr == 0) {
 			PMD_DRV_LOG(ERR,
-			"unable to map ring address to physical memory\n");
+				    "unable to map ring addr to phys memory\n");
 			return -ENOMEM;
 		}
 	}
@@ -440,10 +448,12 @@ int bnxt_alloc_hwrm_rings(struct bnxt *bp)
 			goto err_out;
 		}
 
-		rc = bnxt_hwrm_ring_alloc(bp, ring,
-				HWRM_RING_ALLOC_INPUT_RING_TYPE_RX,
-				map_idx, HWRM_NA_SIGNATURE,
-				cp_ring->fw_ring_id);
+		rc = bnxt_hwrm_ring_alloc(bp,
+					  ring,
+					  HWRM_RING_ALLOC_INPUT_RING_TYPE_RX,
+					  map_idx,
+					  HWRM_NA_SIGNATURE,
+					  cp_ring->fw_ring_id);
 		if (rc)
 			goto err_out;
 		PMD_DRV_LOG(DEBUG, "Alloc AGG Done!\n");
@@ -473,10 +483,13 @@ int bnxt_alloc_hwrm_rings(struct bnxt *bp)
 		unsigned int idx = i + bp->rx_cp_nr_rings;
 
 		/* Tx cmpl */
-		rc = bnxt_hwrm_ring_alloc(bp, cp_ring,
-					HWRM_RING_ALLOC_INPUT_RING_TYPE_L2_CMPL,
-					idx, HWRM_NA_SIGNATURE,
-					HWRM_NA_SIGNATURE);
+		rc = bnxt_hwrm_ring_alloc
+			(bp,
+			 cp_ring,
+			 HWRM_RING_ALLOC_INPUT_RING_TYPE_L2_CMPL,
+			 idx,
+			 HWRM_NA_SIGNATURE,
+			 HWRM_NA_SIGNATURE);
 		if (rc)
 			goto err_out;
 
@@ -484,10 +497,12 @@ int bnxt_alloc_hwrm_rings(struct bnxt *bp)
 		B_CP_DIS_DB(cpr, cpr->cp_raw_cons);
 
 		/* Tx ring */
-		rc = bnxt_hwrm_ring_alloc(bp, ring,
-					HWRM_RING_ALLOC_INPUT_RING_TYPE_TX,
-					idx, cpr->hw_stats_ctx_id,
-					cp_ring->fw_ring_id);
+		rc = bnxt_hwrm_ring_alloc(bp,
+					  ring,
+					  HWRM_RING_ALLOC_INPUT_RING_TYPE_TX,
+					  idx,
+					  cpr->hw_stats_ctx_id,
+					  cp_ring->fw_ring_id);
 		if (rc)
 			goto err_out;
 
