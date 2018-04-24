@@ -373,8 +373,9 @@ static int bnxt_handle_tx_cp(struct bnxt_tx_queue *txq)
 	return nb_tx_pkts;
 }
 
-uint16_t bnxt_xmit_pkts(void *tx_queue, struct rte_mbuf **tx_pkts,
-			       uint16_t nb_pkts)
+uint16_t bnxt_xmit_pkts(void *tx_queue,
+			struct rte_mbuf **tx_pkts,
+			uint16_t nb_pkts)
 {
 	struct bnxt_tx_queue *txq = tx_queue;
 	uint16_t nb_tx_pkts = 0;
