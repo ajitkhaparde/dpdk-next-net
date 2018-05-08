@@ -231,15 +231,6 @@ nxt_non_void_action(const struct rte_flow_action *cur)
 	}
 }
 
-int bnxt_check_zero_bytes(const uint8_t *bytes, int len)
-{
-	int i;
-	for (i = 0; i < len; i++)
-		if (bytes[i] != 0x00)
-			return 0;
-	return 1;
-}
-
 static int
 bnxt_filter_type_check(const struct rte_flow_item pattern[],
 		       struct rte_flow_error *error __rte_unused)
