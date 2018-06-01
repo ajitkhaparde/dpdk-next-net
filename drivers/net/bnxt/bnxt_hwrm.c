@@ -3872,7 +3872,7 @@ int bnxt_hwrm_set_ring_coal(struct bnxt *bp,
 	int rc;
 
 	/* Set ring coalesce parameters only for Stratus 100G NIC */
-	if (!bnxt_stratus_100g_device(bp))
+	if (!bnxt_stratus_device(bp))
 		return 0;
 
 	HWRM_PREP(req, RING_CMPL_RING_CFG_AGGINT_PARAMS);

@@ -323,7 +323,7 @@ int bnxt_link_update_op(struct rte_eth_dev *eth_dev, int wait_to_complete);
 int bnxt_rcv_msg_from_vf(struct bnxt *bp, uint16_t vf_id, void *msg);
 
 bool is_bnxt_supported(struct rte_eth_dev *dev);
-bool bnxt_stratus_100g_device(struct bnxt *bp);
+bool bnxt_stratus_device(struct bnxt *bp);
 extern const struct rte_flow_ops bnxt_flow_ops;
 
 extern int bnxt_logtype_driver;

@@ -3073,14 +3073,13 @@ static bool bnxt_vf_pciid(uint16_t id)
 	return false;
 }
 
-bool bnxt_stratus_100g_device(struct bnxt *bp)
+bool bnxt_stratus_device(struct bnxt *bp)
 {
 	uint16_t id = bp->pdev->id.device_id;
 
-	if ((id == BROADCOM_DEV_ID_STRATUS_NIC ||
-	     id == BROADCOM_DEV_ID_STRATUS_NIC_VF1 ||
-	     id == BROADCOM_DEV_ID_STRATUS_NIC_VF2) &&
-	    bp->eth_dev->data->dev_link.link_speed == ETH_SPEED_NUM_100G)
+	if (id == BROADCOM_DEV_ID_STRATUS_NIC ||
+	    id == BROADCOM_DEV_ID_STRATUS_NIC_VF1 ||
+	    id == BROADCOM_DEV_ID_STRATUS_NIC_VF2)
 		return true;
 	return false;
 }
