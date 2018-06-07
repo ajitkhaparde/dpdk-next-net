@@ -235,7 +235,7 @@ int bnxt_alloc_vnic_mem(struct bnxt *bp)
 			       max_vnics * sizeof(struct bnxt_vnic_info), 0);
 	if (vnic_mem == NULL) {
 		PMD_DRV_LOG(ERR, "Failed to alloc memory for %d VNICs\n",
-			max_vnics);
+			    max_vnics);
 		return -ENOMEM;
 	}
 	bp->vnic_info = vnic_mem;
